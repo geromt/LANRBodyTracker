@@ -1,0 +1,23 @@
+config:
+  camera_index: 0
+  port: 5052
+  display_video: true
+  draw_hand: true
+  static_mode: false
+  max_hands: 1
+  model_complexity: 1
+  min_detection_confidence: 0.5
+  min_tracking_confidence: 0.5
+
+output:
+  type: true
+  frame_height: true
+  frame_wight: true
+  flip_x: true
+  flip:y: true
+  lm_list: []
+  box: false
+  center: false
+  norm_coordinates: false
+  pixel_coordinates: true
+  real_world_coordinates: false
