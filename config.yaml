@@ -1,3 +1,7 @@
+# Archivo de configuración para LANRHandTracker
+#
+# Para una descripción completa de cada una de las opciones de configuracion de aparecen en este archivo, por favor
+# revisar el archivo README.md o https://github.com/geromt/LANRHandTracker
 config:
   camera_index: 0
   port: 5052
@@ -12,12 +16,12 @@ config:
 output:
   type: true
   frame_height: true
-  frame_wight: true
+  frame_width: true
   flip_x: true
-  flip:y: true
+  flip_y: true
   lm_list: []
-  box: false
-  center: false
+  include_box: false
+  include_center: false
   norm_coordinates: false
   pixel_coordinates: true
   real_world_coordinates: false
