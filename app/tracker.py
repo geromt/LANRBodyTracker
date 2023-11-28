@@ -1,4 +1,5 @@
 import math
+import time
 
 import cv2
 import socket
@@ -31,14 +32,21 @@ class HandTracker:
                                            min_tracking_confidence=config.min_tracking_confidence)
 
         self.server_address_port = ("127.0.0.1", self.port)
+        self.count_frame = 0
+        self.init_time = time.time()
 
+        self.results = None
+        self.include_fps = config.include_fps
         self.include_type = config.type
         self.include_height = config.include_height
         self.include_width = config.include_width
+        self.flip_x = config.flip_x
+        self.flip_y = config.flip_y
         self.coordinates = config.coordinates
         self.lm_list = self._calc_landmark_list(config.lm_list)
         self.include_box = config.include_box
         self.include_center = config.include_center
+        self.round = config.round
         self.print_data = config.print_data
 
     def _process_capture(self):
@@ -80,17 +88,22 @@ class HandTracker:
         :return: Image with or without drawings
         """
         img_rgb = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
-        results = self.detector.process(img_rgb)
+        self.results = self.detector.process(img_rgb)
         hand_data = []
         h, w, c = img.shape
 
         if self.coordinates == CoordinatesType.REAL_WORLD:
-            multi_hand_landmarks = results.multi_hand_world_landmarks
+            multi_hand_landmarks = self.results.multi_hand_world_landmarks
         else:
-            multi_hand_landmarks = results.multi_hand_landmarks
+            multi_hand_landmarks = self.results.multi_hand_landmarks
+
+        if self.include_fps:
+            self.count_frame += 1
+            hand_data.append(int(self.count_frame / (time.time() - self.init_time)))
 
         if multi_hand_landmarks:
-            for handType, handLms in zip(results.multi_handedness, multi_hand_landmarks):
+            for handType, handLms in zip(self.results.multi_handedness, multi_hand_landmarks):
+
                 if self.include_type:
                     if flipType:
                         if handType.classification[0].label == "Right":
@@ -114,7 +127,18 @@ class HandTracker:
                         px, py, pz = int(lm_coor.x * w), int(lm_coor.y * h), int(lm_coor.z * w)
                     else:
                         px, py, pz = lm_coor.x, lm_coor.y, lm_coor.z
-                    lm_list.append([px, py, pz])
+
+                    if self.round >= 0:
+                        px = round(px, self.round)
+                        py = round(py, self.round)
+                        pz = round(pz, self.round)
+
+                    if self.flip_y:
+                        py = h - py
+                    if self.flip_x:
+                        px = w - px
+
+                    lm_list.append((px, py, pz))
 
                 if self.include_box or self.include_center:
                     x_vals = (lm.x if self.coordinates == CoordinatesType.PIXEL else (lm.x * w) for lm in landmarks)
@@ -122,6 +146,12 @@ class HandTracker:
 
                     y_vals = (lm.y if self.coordinates == CoordinatesType.PIXEL else (lm.y * w) for lm in landmarks)
                     y_min, y_max = self._find_min_max(y_vals)
+
+                    if self.coordinates == CoordinatesType.PIXEL:
+                        x_min = int(x_min * w)
+                        x_max = int(x_max * w)
+                        y_min = int(y_min * h)
+                        y_max = int(y_max * h)
 
                     box_w, box_h = x_max - x_min, y_max - y_min
                     bbox = x_min, y_min, box_w, box_w
@@ -137,8 +167,11 @@ class HandTracker:
                 if self.coordinates == CoordinatesType.PIXEL and self.draw_hand:
                     self.mpDraw.draw_landmarks(img, handLms, self.mpHands.HAND_CONNECTIONS)
                     if self.include_box:
-                        pass
-                        # cv2.rectangle(img, (bbox[0], bbox[1]), (bbox[0] + bbox[2], bbox[1] + bbox[3]), (255, 0, 255), 2)
+                        cv2.rectangle(img,
+                                      (bbox[0], bbox[1]),
+                                      (bbox[0] + bbox[2], bbox[1] + bbox[3]),
+                                      (255, 0, 255),
+                                      2)
 
         return hand_data, img
 

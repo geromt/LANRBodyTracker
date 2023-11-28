@@ -112,6 +112,13 @@ class ConfigReader:
             return 0.5
 
     @property
+    def include_fps(self):
+        if "include_fps" in self.__output_config:
+            return self.__output_config["include_fps"]
+        else:
+            return False
+
+    @property
     def type(self):
         if "type" in self.__output_config:
             return self.__output_config["type"]
@@ -176,11 +183,19 @@ class ConfigReader:
 
     @property
     def coordinates(self):
-        if "pixel_coordinates" in self.__output_config and self.__output_config["pixel_coordinates"]:
-            return CoordinatesType.PIXEL
-        elif "norm_coordinates" in self.__output_config and self.__output_config["norm_coordinates"]:
-            return CoordinatesType.NORM
-        elif "real_world_coordinates" in self.__output_config and self.__output_config["real_world_coordinates"]:
-            return CoordinatesType.REAL_WORLD
+        if "coordinates" in self.__output_config:
+            if "pixel" in self.__output_config["coordinates"].lower():
+                return CoordinatesType.PIXEL
+            elif "norm" in self.__output_config["coordinates"].lower():
+                return CoordinatesType.NORM
+            elif "real" in self.__output_config["coordinates"].lower():
+                return CoordinatesType.REAL_WORLD
         else:
             return CoordinatesType.PIXEL
+
+    @property
+    def round(self):
+        if "round" in self.__output_config:
+            return self.__output_config["round"]
+        else:
+            return -1

@@ -16,20 +16,19 @@ config:
   static_mode: false
   max_hands: 2
   model_complexity: 1
-  min_detection_confidence: 0.3
-  min_tracking_confidence: 0.3
+  min_detection_confidence: 0.1
+  min_tracking_confidence: 0.1
 
 output:
-  include_fps: false
+  include_fps: true
   type: true
   include_height: true
   include_width: true
   flip_x: true
   flip_y: true
   lm_list: []
-  include_box: true
+  include_box: false
   include_center: true
-  norm_coordinates: false
-  real_world_coordinates: true
-  pixel_coordinates: true
+  coordinates: "pixel"
+  round: 2
   print_data: true
