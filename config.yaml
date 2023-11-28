@@ -20,15 +20,15 @@ config:
   min_tracking_confidence: 0.1
 
 output:
-  include_fps: true
+  include_fps: false
   type: true
-  include_height: true
-  include_width: true
-  flip_x: true
-  flip_y: true
+  include_height: false
+  include_width: false
+  flip_x: false
+  flip_y: false
   lm_list: []
   include_box: false
-  include_center: true
+  include_center: false
   coordinates: "pixel"
   round: 2
   print_data: true

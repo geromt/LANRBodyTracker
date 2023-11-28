@@ -1,3 +1,5 @@
+import sys
+
 import yaml
 from enum import Enum
 
@@ -16,9 +18,9 @@ class ConfigReader:
                 self.__tracker_config = config["config"]
                 self.__output_config = config["output"]
         except FileNotFoundError:
-            print(f"No se encontró el archivo {config_file}")
+            sys.exit(f"No se encontró el archivo {config_file}")
         except yaml.scanner.ScannerError:
-            print(f"El archivo {config_file} no es un archivo YAML válido")
+            sys.exit(f"El archivo {config_file} no es un archivo YAML válido")
 
     @property
     def camera_index(self):
