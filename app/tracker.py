@@ -76,8 +76,8 @@ class HandTracker:
 
                 if self.display_video:
                     img = cv2.resize(img, (
-                        self.frame_width // self.display_video_size,
-                        self.frame_height // self.display_video_size))
+                        int(self.frame_width * self.display_video_size),
+                        int(self.frame_height * self.display_video_size)))
                     cv2.imshow("Image", img)
                     cv2.waitKey(1)
 
@@ -97,11 +97,11 @@ class HandTracker:
         else:
             multi_hand_landmarks = self.results.multi_hand_landmarks
 
-        if self.include_fps:
-            self.count_frame += 1
-            hand_data.append(int(self.count_frame / (time.time() - self.init_time)))
-
         if multi_hand_landmarks:
+            if self.include_fps:
+                self.count_frame += 1
+                hand_data.append(int(self.count_frame / (time.time() - self.init_time)))
+
             for handType, handLms in zip(self.results.multi_handedness, multi_hand_landmarks):
 
                 if self.include_type:
