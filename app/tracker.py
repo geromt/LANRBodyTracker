@@ -138,7 +138,7 @@ class HandTracker:
                     if self.flip_x:
                         px = w - px
 
-                    lm_list.append((px, py, pz))
+                    lm_list.extend((px, py, pz))
 
                 if self.include_box or self.include_center:
                     x_vals = (lm.x if self.coordinates == CoordinatesType.PIXEL else (lm.x * w) for lm in landmarks)
@@ -157,12 +157,12 @@ class HandTracker:
                     bbox = x_min, y_min, box_w, box_w
 
                     if self.include_box:
-                        hand_data.append(bbox)
+                        hand_data.extend(bbox)
                     if self.include_center:
                         cx, cy = bbox[0] + (bbox[2] / 2), bbox[1] + (bbox[3] / 2)
-                        hand_data.append((cx, cy))
+                        hand_data.extend((cx, cy))
 
-                hand_data.append(lm_list)
+                hand_data.extend(lm_list)
 
                 if self.coordinates == CoordinatesType.PIXEL and self.draw_hand:
                     self.mpDraw.draw_landmarks(img, handLms, self.mpHands.HAND_CONNECTIONS)
