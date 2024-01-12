@@ -72,9 +72,9 @@ class ConfigReader:
             return 1
 
     @property
-    def draw_hand(self):
-        if "draw_hand" in self.__tracker_config:
-            return self.__tracker_config["draw_hand"]
+    def draw_pose(self):
+        if "draw_pose" in self.__tracker_config:
+            return self.__tracker_config["draw_pose"]
         else:
             return True
 
@@ -98,6 +98,27 @@ class ConfigReader:
             return self.__tracker_config["model_complexity"]
         else:
             return 1
+
+    @property
+    def smooth_landmarks(self):
+        if "smooth_landmarks" in self.__tracker_config:
+            return self.__tracker_config["smooth_landmarks"]
+        else:
+            return True
+
+    @property
+    def enable_segmentation(self):
+        if "enable_segmentation" in self.__tracker_config:
+            return self.__tracker_config["enable_segmentation"]
+        else:
+            return False
+
+    @property
+    def smooth_segmentation(self):
+        if "smooth_segmentation" in self.__tracker_config:
+            return self.__tracker_config["smooth_segmentation"]
+        else:
+            return True
 
     @property
     def min_detection_confidence(self):

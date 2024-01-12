@@ -1,7 +1,7 @@
 import sys
 import os.path
 
-from app.tracker import HandTracker
+from app.tracker import BodyTracker
 from app.config_reader import ConfigReader
 
 
@@ -14,7 +14,7 @@ def main():
     else:
         config = ConfigReader()
 
-    tracker = HandTracker(config)
+    tracker = BodyTracker(config)
     tracker.capture_and_send()
 
 

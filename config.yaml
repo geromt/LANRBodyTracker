@@ -12,10 +12,13 @@ config:
   frame_width: 1280
   display_video: true
   display_video_size: 0.5
-  draw_hand: true
+  draw_pose: true
   static_mode: false
   max_hands: 1
   model_complexity: 1
+  smooth_landmarks: true
+  enable_segmentation: false
+  smooth_segmentation: true
   min_detection_confidence: 0.5
   min_tracking_confidence: 0.5
 
@@ -25,10 +28,10 @@ output:
   include_height: false
   include_width: false
   flip_x: false
-  flip_y: false
+  flip_y: true
   lm_list: []
   include_box: false
   include_center: false
-  coordinates: "pixel"
+  coordinates: "real"
   round: 2
   print_data: true

@@ -8,7 +8,7 @@ import mediapipe as mp
 from app.config_reader import ConfigReader, CoordinatesType
 
 
-class HandTracker:
+class BodyTracker:
     def __init__(self, config: ConfigReader):
         self.capture = cv2.VideoCapture(config.camera_index)
         self.port = config.port
@@ -17,19 +17,21 @@ class HandTracker:
 
         self.display_video = config.display_video
         self.display_video_size = config.display_video_size
-        self.draw_hand = config.draw_hand
+        self.draw_pose = config.draw_pose
         self.mpDraw = mp.solutions.drawing_utils
 
         if config.config_frame:
-            self.capture.set(3, self.frame_width)
-            self.capture.set(4, self.frame_height)
+            self.capture.set(cv2.CAP_PROP_FRAME_WIDTH, self.frame_width)
+            self.capture.set(cv2.CAP_PROP_FRAME_HEIGHT, self.frame_height)
 
-        self.mpHands = mp.solutions.hands
-        self.detector = self.mpHands.Hands(static_image_mode=config.static_mode,
-                                           max_num_hands=config.max_hands,
-                                           model_complexity=config.model_complexity,
-                                           min_detection_confidence=config.min_detection_confidence,
-                                           min_tracking_confidence=config.min_tracking_confidence)
+        self.mpPose = mp.solutions.pose
+        self.detector = self.mpPose.Pose(static_image_mode=config.static_mode,
+                                         smooth_landmarks=config.smooth_landmarks,
+                                         model_complexity=config.model_complexity,
+                                         enable_segmentation=config.enable_segmentation,
+                                         smooth_segmentation=config.smooth_segmentation,
+                                         min_detection_confidence=config.min_detection_confidence,
+                                         min_tracking_confidence=config.min_tracking_confidence)
 
         self.server_address_port = ("127.0.0.1", self.port)
         self.count_frame = 0
@@ -37,7 +39,6 @@ class HandTracker:
 
         self.results = None
         self.include_fps = config.include_fps
-        self.include_type = config.type
         self.include_height = config.include_height
         self.include_width = config.include_width
         self.flip_x = config.flip_x
@@ -55,7 +56,7 @@ class HandTracker:
         if not success:
             return
 
-        data, img = self.find_hands(img)
+        data, img = self.find_pose(img)
         if not data:
             data.append("NoHand")
 
@@ -81,7 +82,7 @@ class HandTracker:
                     cv2.imshow("Image", img)
                     cv2.waitKey(1)
 
-    def find_hands(self, img, flipType=True):
+    def find_pose(self, img):
         """
         Finds hands in a BGR image.
         :param img: Image to find the hands in.
@@ -89,91 +90,81 @@ class HandTracker:
         """
         img_rgb = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
         self.results = self.detector.process(img_rgb)
-        hand_data = []
+        body_data = []
         h, w, c = img.shape
 
         if self.coordinates == CoordinatesType.REAL_WORLD:
-            multi_hand_landmarks = self.results.multi_hand_world_landmarks
+            pose_landmarks = self.results.pose_world_landmarks
         else:
-            multi_hand_landmarks = self.results.multi_hand_landmarks
+            pose_landmarks = self.results.pose_landmarks
 
-        if multi_hand_landmarks:
+        if pose_landmarks:
             if self.include_fps:
                 self.count_frame += 1
-                hand_data.append(int(self.count_frame / (time.time() - self.init_time)))
+                body_data.append(int(self.count_frame / (time.time() - self.init_time)))
 
-            for handType, handLms in zip(self.results.multi_handedness, multi_hand_landmarks):
+            if self.include_height:
+                body_data.append(h)
+            if self.include_width:
+                body_data.append(w)
 
-                if self.include_type:
-                    if flipType:
-                        if handType.classification[0].label == "Right":
-                            hand_data.append("Left")
-                        else:
-                            hand_data.append("Right")
-                    else:
-                        hand_data.append(handType.classification[0].label)
+            lm_list = []
 
-                if self.include_height:
-                    hand_data.append(h)
-                if self.include_width:
-                    hand_data.append(w)
+            for i, lm in enumerate(pose_landmarks.landmark):
 
-                lm_list = []
-                landmarks = handLms.landmark
+                if self.coordinates == CoordinatesType.PIXEL:
+                    px, py, pz = int(lm.x * w), int(lm.y * h), int(lm.z * w)
+                else:
+                    px, py, pz = lm.x, lm.y, lm.z
 
-                for lm in self.lm_list:
-                    lm_coor = landmarks[lm]
-                    if self.coordinates == CoordinatesType.PIXEL:
-                        px, py, pz = int(lm_coor.x * w), int(lm_coor.y * h), int(lm_coor.z * w)
-                    else:
-                        px, py, pz = lm_coor.x, lm_coor.y, lm_coor.z
+                if self.round >= 0:
+                    px = round(px, self.round)
+                    py = round(py, self.round)
+                    pz = round(pz, self.round)
 
-                    if self.round >= 0:
-                        px = round(px, self.round)
-                        py = round(py, self.round)
-                        pz = round(pz, self.round)
+                if self.flip_y:
+                    py = 1 - py
+                    py = round(py, self.round)
+                if self.flip_x:
+                    px = 1 - px
+                    px = round(px, self.round)
 
-                    if self.flip_y:
-                        py = h - py
-                    if self.flip_x:
-                        px = w - px
+                lm_list.extend((px, py, pz))
 
-                    lm_list.extend((px, py, pz))
+            if self.include_box or self.include_center:
+                x_vals = (lm.x if self.coordinates == CoordinatesType.PIXEL else (lm.x * w) for lm in pose_landmarks)
+                x_min, x_max = self._find_min_max(x_vals)
 
-                if self.include_box or self.include_center:
-                    x_vals = (lm.x if self.coordinates == CoordinatesType.PIXEL else (lm.x * w) for lm in landmarks)
-                    x_min, x_max = self._find_min_max(x_vals)
+                y_vals = (lm.y if self.coordinates == CoordinatesType.PIXEL else (lm.y * w) for lm in pose_landmarks)
+                y_min, y_max = self._find_min_max(y_vals)
 
-                    y_vals = (lm.y if self.coordinates == CoordinatesType.PIXEL else (lm.y * w) for lm in landmarks)
-                    y_min, y_max = self._find_min_max(y_vals)
+                if self.coordinates == CoordinatesType.PIXEL:
+                    x_min = int(x_min * w)
+                    x_max = int(x_max * w)
+                    y_min = int(y_min * h)
+                    y_max = int(y_max * h)
 
-                    if self.coordinates == CoordinatesType.PIXEL:
-                        x_min = int(x_min * w)
-                        x_max = int(x_max * w)
-                        y_min = int(y_min * h)
-                        y_max = int(y_max * h)
+                box_w, box_h = x_max - x_min, y_max - y_min
+                bbox = x_min, y_min, box_w, box_w
 
-                    box_w, box_h = x_max - x_min, y_max - y_min
-                    bbox = x_min, y_min, box_w, box_w
+                if self.include_box:
+                    body_data.extend(bbox)
+                if self.include_center:
+                    cx, cy = bbox[0] + (bbox[2] / 2), bbox[1] + (bbox[3] / 2)
+                    body_data.extend((cx, cy))
 
-                    if self.include_box:
-                        hand_data.extend(bbox)
-                    if self.include_center:
-                        cx, cy = bbox[0] + (bbox[2] / 2), bbox[1] + (bbox[3] / 2)
-                        hand_data.extend((cx, cy))
+            body_data.extend(lm_list)
 
-                hand_data.extend(lm_list)
+            if self.coordinates == CoordinatesType.PIXEL and self.draw_pose:
+                self.mpDraw.draw_landmarks(img, pose_landmarks, self.mpPose.POSE_CONNECTIONS)
+                if self.include_box:
+                    cv2.rectangle(img,
+                                  (bbox[0], bbox[1]),
+                                  (bbox[0] + bbox[2], bbox[1] + bbox[3]),
+                                  (255, 0, 255),
+                                  2)
 
-                if self.coordinates == CoordinatesType.PIXEL and self.draw_hand:
-                    self.mpDraw.draw_landmarks(img, handLms, self.mpHands.HAND_CONNECTIONS)
-                    if self.include_box:
-                        cv2.rectangle(img,
-                                      (bbox[0], bbox[1]),
-                                      (bbox[0] + bbox[2], bbox[1] + bbox[3]),
-                                      (255, 0, 255),
-                                      2)
-
-        return hand_data, img
+        return body_data, img
 
     def _calc_landmark_list(self, lm_list):
         if lm_list is None:
