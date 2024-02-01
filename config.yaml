@@ -23,8 +23,7 @@ config:
   min_tracking_confidence: 0.5
 
 output:
-  include_fps: false
-  type: true
+  include_fps: true
   include_height: false
   include_width: false
   flip_x: false
@@ -32,6 +31,7 @@ output:
   lm_list: []
   include_box: false
   include_center: false
+  include_visibility: true
   coordinates: "real"
   round: 2
-  print_data: true
+  print_data: false

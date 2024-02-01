@@ -142,13 +142,6 @@ class ConfigReader:
             return False
 
     @property
-    def type(self):
-        if "type" in self.__output_config:
-            return self.__output_config["type"]
-        else:
-            return False
-
-    @property
     def include_height(self):
         if "include_height" in self.__output_config:
             return self.__output_config["include_height"]
@@ -194,6 +187,13 @@ class ConfigReader:
     def include_center(self):
         if "include_center" in self.__output_config:
             return self.__output_config["include_center"]
+        else:
+            return False
+
+    @property
+    def include_visibility(self):
+        if "include_visibility" in self.__output_config:
+            return self.__output_config["include_visibility"]
         else:
             return False
 

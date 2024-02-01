@@ -47,6 +47,7 @@ class BodyTracker:
         self.lm_list = self._calc_landmark_list(config.lm_list)
         self.include_box = config.include_box
         self.include_center = config.include_center
+        self.include_visibility = config.include_visibility
         self.round = config.round
         self.print_data = config.print_data
 
@@ -128,6 +129,9 @@ class BodyTracker:
                 if self.flip_x:
                     px = 1 - px
                     px = round(px, self.round)
+
+                if self.include_visibility:
+                    lm_list.append(round(lm.visibility, self.round))
 
                 lm_list.extend((px, py, pz))
 
