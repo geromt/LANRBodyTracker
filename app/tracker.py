@@ -59,7 +59,7 @@ class BodyTracker:
 
         data, img = self.find_pose(img)
         if not data:
-            data.append("NoHand")
+            data.append("")
 
         return img, data
 

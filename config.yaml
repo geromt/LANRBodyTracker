@@ -7,7 +7,7 @@
 config:
   camera_index: 0
   port: 5052
-  config_frame: false
+  config_frame: true
   frame_height: 720
   frame_width: 1280
   display_video: true
@@ -34,4 +34,4 @@ output:
   include_visibility: true
   coordinates: "real"
   round: 2
-  print_data: false
+  print_data: true
