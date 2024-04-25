@@ -1,11 +1,20 @@
 import math
+import sys
 import time
+import logging
 
 import cv2
 import socket
 import mediapipe as mp
 
 from app.config_reader import ConfigReader, CoordinatesType
+
+
+logging.basicConfig(filename='./LANRBodyTracker.log',
+                    level=logging.INFO,
+                    format='%(asctime)s %(levelname)s %(name)s %(message)s',
+                    filemode='w')
+logger = logging.getLogger(__name__)
 
 
 class BodyTracker:
@@ -55,7 +64,8 @@ class BodyTracker:
         success, img = self.capture.read()
 
         if not success:
-            return
+            logger.error("No captured image")
+            return None, None
 
         data, img = self.find_pose(img)
         if not data:
@@ -68,20 +78,30 @@ class BodyTracker:
         Captura los movimientos de la mano y manda los datos por el puerto especificado. Para conocer la estructura de
         los datos revisar README.md
         """
+        logger.log(logging.INFO, "Starting")
         with socket.socket(socket.AF_INET, socket.SOCK_DGRAM) as s:
             while True:
-                img, data = self._process_capture()
-                if data:
-                    s.sendto(str.encode(str(data)), self.server_address_port)
-                    if self.print_data:
-                        print(str.encode(str(data)))
+                try:
+                    img, data = self._process_capture()
 
-                if self.display_video:
-                    img = cv2.resize(img, (
-                        int(self.frame_width * self.display_video_size),
-                        int(self.frame_height * self.display_video_size)))
-                    cv2.imshow("Image", img)
-                    cv2.waitKey(1)
+                    if data is None:
+                        continue
+                    if data:
+                        str_to_send = str.encode(str(data))
+                        s.sendto(str_to_send, self.server_address_port)
+                        if self.print_data:
+                            logger.log(logging.INFO, str_to_send)
+
+                    if self.display_video:
+                        img = cv2.resize(img, (
+                            int(self.frame_width * self.display_video_size),
+                            int(self.frame_height * self.display_video_size)))
+                        cv2.imshow("Image", img)
+                        cv2.waitKey(1)
+                except KeyboardInterrupt as ki:
+                    logger.error(ki)
+                    sys.exit(0)
+
 
     def find_pose(self, img):
         """

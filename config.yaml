@@ -5,7 +5,7 @@
 #
 
 config:
-  camera_index: 0
+  camera_index: 1
   port: 5052
   config_frame: true
   frame_height: 720
