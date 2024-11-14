@@ -2,6 +2,7 @@ import math
 import sys
 import time
 import logging
+from threading import Thread
 
 import cv2
 import socket
@@ -60,6 +61,8 @@ class BodyTracker:
         self.round = config.round
         self.print_data = config.print_data
 
+        self.has_received_stop_command = False
+
     def _process_capture(self):
         success, img = self.capture.read()
 
@@ -79,29 +82,42 @@ class BodyTracker:
         los datos revisar README.md
         """
         logger.log(logging.INFO, "Starting")
-        with socket.socket(socket.AF_INET, socket.SOCK_DGRAM) as s:
+        with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
+            s.connect(self.server_address_port)
             while True:
-                try:
-                    img, data = self._process_capture()
+                command = s.recv(1024).decode("utf-8")
+                if command == "start":
+                    logger.log(logging.INFO, "Received start command, sending messages...")
+                    sender_thread = Thread(target=self.send_capture_task, args=(s,))
+                    sender_thread.start()
+                elif command == "stop":
+                    logger.log(logging.INFO, "Received stop command, pausing communication...")
+                    self.has_received_stop_command = True
 
-                    if data is None:
-                        continue
-                    if data:
-                        str_to_send = str.encode(str(data))
-                        s.sendto(str_to_send, self.server_address_port)
-                        if self.print_data:
-                            logger.log(logging.INFO, str_to_send)
+    def send_capture_task(self, sender_socket):
+        while not self.has_received_stop_command:
+            try:
+                img, data = self._process_capture()
 
-                    if self.display_video:
-                        img = cv2.resize(img, (
-                            int(self.frame_width * self.display_video_size),
-                            int(self.frame_height * self.display_video_size)))
-                        cv2.imshow("Image", img)
-                        cv2.waitKey(1)
-                except KeyboardInterrupt as ki:
-                    logger.error(ki)
-                    sys.exit(0)
+                if not data:
+                    continue
+                if data:
+                    str_to_send = str.encode(str(data) + "\n")
+                    sender_socket.send(str_to_send)
+                    if self.print_data:
+                        logger.log(logging.INFO, str_to_send)
 
+                if self.display_video:
+                    img = cv2.resize(img, (
+                        int(self.frame_width * self.display_video_size),
+                        int(self.frame_height * self.display_video_size)))
+                    cv2.imshow("Image", img)
+                    cv2.waitKey(1)
+            except KeyboardInterrupt as ki:
+                logger.error(ki)
+                sys.exit(0)
+
+        self.has_received_stop_command = False
 
     def find_pose(self, img):
         """
